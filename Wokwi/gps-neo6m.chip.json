@@ -1,0 +1,8 @@
+{
+  "name": "gps-neo6m",
+  "author": "ApoiaSP (baseado em Chiranjiv Nagarajan)",
+  "pins": ["VCC", "GND", "RX", "TX"],
+  "controls": [
+    { "id": "sinal", "label": "Sinal GPS (1 = ok, 0 = sem sinal)", "type": "slider", "min": 0, "max": 1, "step": 1 }
+  ]
+}

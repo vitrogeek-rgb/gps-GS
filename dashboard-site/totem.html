@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApoiaSP · Totem web</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+:root{--deep:#17485a;--ink:#173c4c;--green:#267442;--line:#d6e0e3;--muted:#637780;--sun:#f8c85c}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:Inter,system-ui,"Segoe UI",sans-serif;color:var(--ink);background:#f2f6f7}
+header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px clamp(16px,4vw,40px);background:var(--deep);color:#fff}
+.brand{display:flex;align-items:center;gap:10px;font-weight:750;font-size:19px}
+.mark{width:38px;height:38px;border-radius:12px;background:var(--sun);color:var(--ink);display:grid;place-items:center;font-size:22px}
+header a{color:#cfe0e6;font-size:13px}
+main{max-width:660px;margin:0 auto;padding:22px 18px}
+.card{background:#fff;border:1px solid var(--line);border-radius:22px;padding:clamp(20px,5vw,34px)}
+h1{margin:0 0 16px;font-size:clamp(26px,5vw,36px);line-height:1.15;letter-spacing:-.03em}
+.opt{display:block;width:100%;text-align:left;margin-top:10px;padding:16px 18px;min-height:60px;border:1px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);font:inherit;font-size:17px;font-weight:650;cursor:pointer}
+.opt:hover,.opt:focus-visible{background:var(--green);border-color:var(--green);color:#fff;outline:none}
+.nav{display:flex;gap:10px;margin-top:20px}
+.nav button{flex:1;padding:12px;border:0;border-radius:12px;background:#e8f0f2;color:var(--ink);font:inherit;font-weight:650;cursor:pointer}
+.big{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.sub{color:var(--muted);margin:6px 0 4px}
+ol{padding-left:22px;margin:0;display:grid;gap:10px;line-height:1.45}
+li span{color:var(--muted);white-space:nowrap}
+.qr{display:grid;justify-items:center;gap:12px;text-align:center}
+.qr svg{width:min(260px,70vw);height:auto;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff}
+.qr a{word-break:break-all;color:var(--deep);font-size:13px}
+#live{margin:14px 4px 0;text-align:center;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="mark">+</span>ApoiaSP</div>
+  <a href="index.html">Painel do gestor</a>
+</header>
+<main>
+  <section class="card" id="screen" aria-live="polite"></section>
+  <p id="live" hidden></p>
+</main>
+<script>
+// ---- Dados (os mesmos do sketch do ESP32) ----
+const POSTE = {lat: -23.56336, lon: -46.65427};   // Metro Trianon-Masp
+const LANGS = [['pt', 'Português (Brasil)'], ['es', 'Español (Latam)'], ['en', 'English']];
+const T = {
+  pt:{cat:'Do que precisa?',cats:['Saúde','Segurança','Documentos','Assistência social'],qual:'Qual local?',near:'Mais próximo',steps:'Ver passos na tela',qr:'Levar no celular (QR Google Maps)',scan:'Aponte a câmera do celular para o QR',back:'Voltar',home:'Início',min:'min a pé',step:'passos'},
+  es:{cat:'¿Qué necesita?',cats:['Salud','Seguridad','Documentos','Asistencia social'],qual:'¿Qué lugar?',near:'Más cercano',steps:'Ver pasos en pantalla',qr:'Llevar al celular (QR Google Maps)',scan:'Apunte la cámara del celular al QR',back:'Volver',home:'Inicio',min:'min a pie',step:'pasos'},
+  en:{cat:'What do you need?',cats:['Health','Safety','Documents','Social aid'],qual:'Which place?',near:'Nearest',steps:'See steps on screen',qr:'Take it on your phone (Google Maps QR)',scan:'Point your phone camera at the QR',back:'Back',home:'Home',min:'min walk',step:'steps'}
+};
+const F = {
+  pt:['Siga em direção a %s','Vire à esquerda na %s','Vire à direita na %s','Vire à esquerda em direção a %s','Vire à direita em direção a %s','Vire à esquerda para permanecer na %s','Curva suave à esquerda para permanecer na %s','Curva suave à direita na %s','Curva suave à direita para permanecer na %s','Continue para %s','Utilize a faixa de pedestres','Siga na direção sudeste na %s','Vire à esquerda na %s. Use as escadas','Vire à esquerda depois de %s'],
+  es:['Sigue hacia %s','Gira a la izquierda en %s','Gira a la derecha en %s','Gira a la izquierda hacia %s','Gira a la derecha hacia %s','Gira a la izquierda para seguir en %s','Curva suave a la izquierda para seguir en %s','Curva suave a la derecha en %s','Curva suave a la derecha para seguir en %s','Continúa hacia %s','Usa el paso de peatones','Sigue al sureste por %s','Gira a la izquierda en %s. Usa las escaleras','Gira a la izquierda después de %s'],
+  en:['Head toward %s','Turn left onto %s','Turn right onto %s','Turn left toward %s','Turn right toward %s','Turn left to stay on %s','Slight left to stay on %s','Slight right onto %s','Slight right to stay on %s','Continue to %s','Use the crosswalk','Head southeast on %s','Turn left onto %s. Use the stairs','Turn left after %s']
+};
+// tipo: [pt, es, en, categoria]
+const TIPOS = [['UBS','UBS','UBS',0],['UPA','UPA','UPA',0],['Polícia Militar','Policía Militar','Military Police',1],['Defesa Civil','Defensa Civil','Civil Defense',1],['Poupatempo','Poupatempo','Poupatempo',2],['Polícia Federal','Policía Federal','Federal Police',2],['CRAS','CRAS','CRAS',3]];
+// local: nome, lat, lon, tipo, link, rota [acao, rua, metros]
+const LOCAIS = [
+ ['UBS N. Sra. do Brasil',-23.5626683,-46.6492757,0,'https://maps.app.goo.gl/oebUmocQyVQLBtpU8',[[0,'R. Pamplona',220],[1,'Alameda Campinas',270],[2,'Alameda Ribeirão Preto',190],[1,'R. Alm. Marques de Leão',170]]],
+ ['UPA Vergueiro',-23.5675198,-46.6395946,1,'https://maps.app.goo.gl/Zis4bBkaLpncvnPXA',[[0,'R. Pamplona',1300],[3,'R. Treze de Maio',70],[1,'R. Treze de Maio',210],[2,'Praça Amadeu Amaral',12],[5,'Praça Amadeu Amaral',54],[2,'R. João Julião',140],[9,'Viaduto Beneficência Portuguesa',240],[1,'Rua Vergueiro',140]]],
+ ['Base Pol. Comunitária',-23.5604083,-46.6465821,2,'https://maps.app.goo.gl/kqqDFSonLWxtbV8RA',[[0,'R. Pamplona',400],[1,'Alameda Joaquim Eugênio de Lima',500],[7,'R. dos Belgas',93],[1,'Rua dos Ingleses',220],[8,'Rua dos Ingleses',36]]],
+ ['Sec. Segurança Urbana',-23.5502157,-46.6538779,3,'https://maps.app.goo.gl/rVqyp6VjxtYJQEcy5',[[0,'R. Carlos Comenale',130],[12,'R. São Carlos do Pinhal',290],[2,'Rua Peixoto Gomide',700],[2,'R. Augusta',400],[13,'Lebanon Food',270],[1,'R. da Consolação',53]]],
+ ['Poupatempo ALESP',-23.5797861,-46.6573789,4,'https://maps.app.goo.gl/eYsHstPML97cdMva9',[[0,'R. Pamplona',71],[10,'',650],[4,'R. Manuel da Nóbrega',15],[3,'R. Manuel da Nóbrega',5],[2,'R. Manuel da Nóbrega',750],[6,'R. Manuel da Nóbrega',750],[3,'Av. Sgt. Mário Kozel Filho',130],[4,'Av. Sgt. Mário Kozel Filho',12],[1,'Av. Sgt. Mário Kozel Filho',38],[4,'Av. Sgt. Mário Kozel Filho',13],[1,'Av. Sgt. Mário Kozel Filho',44]]],
+ ['Juizado Esp. Federal',-23.5632783,-46.6549348,5,'https://maps.app.goo.gl/HwV32PWg7sKayUmU7',[[11,'Av. Paulista',20],[10,'',59]]],
+ ['CRAS Vila Mariana',-23.5803166,-46.6464865,6,'https://maps.app.goo.gl/1EJD7CHVpXn5xVUq6',[[0,'R. Pamplona',350],[10,'',350],[4,'R. Manuel da Nóbrega',15],[3,'R. Manuel da Nóbrega',5],[2,'R. Manuel da Nóbrega',140],[1,'Alameda Santos',500],[9,'R. Cubatão',800],[2,'Rua Eça de Queiroz',450],[1,'R. Artur de Almeida',29]]]
+];
+
+const QRP = {pt:'QR passo a passo', es:'QR paso a paso', en:'QR step by step'};
+
+// ---- Lógica (igual à do totem: o local mais próximo do poste) ----
+const rad = g => g * Math.PI / 180;
+function distancia(l){                       // haversine, em metros
+  const R = 6371000, dp = rad(l[1] - POSTE.lat), dl = rad(l[2] - POSTE.lon);
+  const a = Math.sin(dp/2)**2 + Math.cos(rad(POSTE.lat)) * Math.cos(rad(l[1])) * Math.sin(dl/2)**2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function maisProximo(tipo){
+  return LOCAIS.filter(l => l[3] === tipo).sort((a, b) => distancia(a) - distancia(b))[0];
+}
+function paginar(l, lang){
+  const MAX = 134, base = l[0].length + 10, pags = [[]];
+  let usado = base;
+  l[5].forEach((p, i) => {
+    const ln = `${i + 1}. ${instrucao(p, lang)} (${p[2]} m)\n`;
+    if (usado + ln.length > MAX && pags[pags.length - 1].length > 0){ pags.push([]); usado = base; }
+    pags[pags.length - 1].push(ln); usado += ln.length;
+  });
+  return pags.map((p, i) => `${l[0]} (${i + 1}/${pags.length})\n` + p.join(''));
+}
+const fmtDist = m => m < 1000 ? Math.round(m) + ' m' : (m / 1000).toFixed(1) + ' km';
+const instrucao = (p, lang) => F[lang][p[0]].replace('%s', p[1]);
+
+// ---- Telas ----
+let st = {lang: 'pt', cat: 0, tipo: 0, local: null}, pilha = [];
+const $screen = document.getElementById('screen');
+
+function ir(view){ pilha.push(view); desenhar(); }
+function voltar(){ if (pilha.length > 1) pilha.pop(); desenhar(); }
+function inicio(){ pilha = ['idioma']; desenhar(); }
+
+function botao(texto, fn){
+  const b = document.createElement('button'); b.className = 'opt'; b.textContent = texto;
+  b.addEventListener('click', fn); return b;
+}
+
+function desenhar(){
+  const view = pilha[pilha.length - 1], t = T[st.lang], idx = LANGS.findIndex(x => x[0] === st.lang);
+  $screen.replaceChildren();
+  const h1 = document.createElement('h1'); $screen.append(h1);
+
+  if (view === 'idioma'){
+    h1.textContent = 'Idioma / Language';
+    LANGS.forEach(([cod, nome]) => $screen.append(botao(nome, () => { st.lang = cod; ir('cat'); })));
+  } else if (view === 'cat'){
+    h1.textContent = t.cat;
+    t.cats.forEach((nome, i) => $screen.append(botao(nome, () => { st.cat = i; ir('tipo'); })));
+  } else if (view === 'tipo'){
+    h1.textContent = t.qual;
+    TIPOS.forEach((tp, i) => { if (tp[3] === st.cat) $screen.append(botao(tp[idx], () => { st.tipo = i; st.local = maisProximo(i); ir('resultado'); })); });
+  } else if (view === 'resultado'){
+    const l = st.local, d = distancia(l), total = l[5].reduce((s, p) => s + p[2], 0);
+    h1.textContent = l[0];
+    $screen.insertAdjacentHTML('beforeend', `<p class="sub">${t.near}</p><div class="big">${fmtDist(d)}</div><p class="sub">${Math.ceil(total / 80)} ${t.min}</p>`);
+    $screen.append(botao(t.steps, () => ir('passos')), botao(t.qr, () => ir('qr')), botao(QRP[st.lang], () => { st.pag = 0; ir('qrpassos'); }));
+  } else if (view === 'passos'){
+    const l = st.local;
+    h1.textContent = l[0];
+    const ol = document.createElement('ol');
+    l[5].forEach(p => { const li = document.createElement('li'); li.textContent = instrucao(p, st.lang) + ' '; const m = document.createElement('span'); m.textContent = '(' + p[2] + ' m)'; li.append(m); ol.append(li); });
+    $screen.append(ol);
+  } else if (view === 'qr'){
+    const l = st.local;
+    h1.textContent = l[0];
+    const box = document.createElement('div'); box.className = 'qr';
+    let svg = '';
+    try { const q = qrcode(0, 'L'); q.addData(l[4]); q.make(); svg = q.createSvgTag(5); } catch (e) {}   // sem internet a biblioteca nao carrega: fica so o link
+    box.innerHTML = svg + `<p class="sub">${t.scan}</p><a href="${l[4]}" target="_blank" rel="noopener">${l[4]}</a>`;
+    $screen.append(box);
+  } else if (view === 'qrpassos'){
+    const l = st.local, pags = paginar(l, st.lang), p = Math.min(st.pag || 0, pags.length - 1);
+    h1.textContent = l[0];
+    const box = document.createElement('div'); box.className = 'qr';
+    let svg = '';
+    try {
+      if (qrcode.stringToBytesFuncs) qrcode.stringToBytes = qrcode.stringToBytesFuncs['UTF-8'];   // acentos corretos no celular
+      const q = qrcode(0, 'L'); q.addData(pags[p]); q.make(); svg = q.createSvgTag(5);
+    } catch (e) {}
+    box.innerHTML = svg + `<p class="sub">${t.scan}</p><pre style="white-space:pre-wrap;text-align:left;font:inherit;font-size:14px;line-height:1.5;margin:0"></pre>`;
+    box.querySelector('pre').textContent = pags[p];
+    $screen.append(box);
+    if (pags.length > 1){
+      const pg = document.createElement('div'); pg.className = 'nav';
+      const ant = document.createElement('button'); ant.textContent = '‹'; ant.disabled = p === 0; ant.onclick = () => { st.pag = p - 1; desenhar(); };
+      const cnt = document.createElement('button'); cnt.textContent = `${p + 1} / ${pags.length}`; cnt.disabled = true;
+      const prox = document.createElement('button'); prox.textContent = '›'; prox.disabled = p === pags.length - 1; prox.onclick = () => { st.pag = p + 1; desenhar(); };
+      pg.append(ant, cnt, prox); $screen.append(pg);
+    }
+  }
+
+  if (pilha.length > 1){
+    const nav = document.createElement('div'); nav.className = 'nav';
+    const b1 = document.createElement('button'); b1.textContent = t.back; b1.onclick = voltar;
+    const b2 = document.createElement('button'); b2.textContent = t.home; b2.onclick = inicio;
+    nav.append(b1, b2); $screen.append(nav);
+  }
+}
+
+// ---- Totem físico (opcional): mostra se o poste está online e quantas pessoas atendeu ----
+async function status(){
+  const el = document.getElementById('live');
+  try {
+    const r = await fetch('/api/estado', {cache: 'no-store'}); if (!r.ok) throw 0;
+    const s = await r.json(), v = k => s[k] && s[k].value;
+    
+    el.hidden = false;
+  } catch (e) { el.hidden = true; }
+}
+inicio(); status(); setInterval(status, 5000);
+</script>
+</body>
+</html>

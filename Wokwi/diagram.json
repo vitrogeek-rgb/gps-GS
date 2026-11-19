@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "author": "",
+  "editor": "",
+  "parts": [
+    { "type": "board-esp32-devkit-v1", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    {
+      "type": "board-ssd1306",
+      "id": "oled",
+      "top": 89.54,
+      "left": 422.63,
+      "attrs": { "i2cAddress": "0x3c" }
+    },
+    { "type": "wokwi-ds1307", "id": "rtc", "top": -101.4, "left": 412.9, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "sonar",
+      "top": -171.3,
+      "left": -186.5,
+      "attrs": { "distance": "308" }
+    },
+    {
+      "type": "chip-gps-neo6m",
+      "id": "gps",
+      "top": 153.4,
+      "left": 274.58,
+      "rotate": 90,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": 249.6,
+      "left": 9.6,
+      "rotate": 180,
+      "attrs": { "volume": "0.1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnCima",
+      "top": 380,
+      "left": 0,
+      "attrs": { "color": "blue", "label": "CIMA" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnBaixo",
+      "top": 380.6,
+      "left": 86.4,
+      "attrs": { "color": "yellow", "label": "BAIXO" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnOk",
+      "top": 380.6,
+      "left": 172.8,
+      "attrs": { "color": "green", "label": "OK" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btnVoltar",
+      "top": 380.6,
+      "left": 268.8,
+      "attrs": { "color": "red", "label": "VOLTAR" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "oled:VCC", "esp:3V3", "magenta", [ "v-76.8", "h-259.05", "v137.12" ] ],
+    [ "oled:GND", "esp:GND.1", "black", [ "v-9.6", "h-278.4", "v60.32" ] ],
+    [ "oled:SDA", "esp:D21", "cyan", [ "v-28.8", "h-186.64" ] ],
+    [ "oled:SCL", "esp:D22", "yellow", [ "v-48", "h-176.81" ] ],
+    [ "rtc:VCC", "esp:3V3", "red", [] ],
+    [ "rtc:GND", "esp:GND.1", "black", [ "h-345.6", "v233.12" ] ],
+    [ "rtc:SDA", "esp:D21", "cyan", [ "h-307.2", "v127.22" ] ],
+    [ "rtc:SCL", "esp:D22", "yellow", [ "h-288", "v88.92" ] ],
+    [ "sonar:VCC", "esp:VIN", "red", [ "v65.9", "h41.9", "v165.92" ] ],
+    [ "sonar:GND", "esp:GND.2", "black", [ "v8.3", "h79.1", "v213.92" ] ],
+    [ "sonar:TRIG", "esp:D5", "orange", [ "v17.9", "h175.9", "v146.72" ] ],
+    [ "sonar:ECHO", "esp:D18", "blue", [ "v37.1", "h60.3", "v117.92" ] ],
+    [
+      "gps:VCC",
+      "esp:3V3",
+      "violet",
+      [ "v-19.2", "h-38.4", "v76.8", "h-134.4", "v-19.2", "h-61.91" ]
+    ],
+    [ "gps:GND", "esp:GND.1", "black", [ "v28.8", "h-225.11" ] ],
+    [ "gps:TX", "esp:RX2", "green", [ "v21.01", "h-182.4", "v-131.68" ] ],
+    [ "gps:RX", "esp:TX2", "white", [ "v-17.39", "h-211.2", "v-102.88" ] ],
+    [ "buzzer:1", "esp:GND.1", "black", [ "h67.2", "v-102.88" ] ],
+    [ "buzzer:2", "esp:D4", "purple", [ "v-19.2", "h86.8", "v-112.48" ] ],
+    [ "btnCima:1.l", "esp:D25", "blue", [] ],
+    [ "btnCima:2.l", "esp:GND.2", "black", [ "v0.8", "h-38.4", "v-266.08" ] ],
+    [ "btnBaixo:1.l", "esp:D27", "yellow", [ "v-18.6", "h-109.2", "v-266.08" ] ],
+    [ "btnBaixo:2.l", "esp:GND.2", "black", [ "v106.4", "h-176.4", "v-371.68" ] ],
+    [ "btnOk:1.l", "esp:D26", "limegreen", [ "v-28.2", "h-237.6", "v-266.08" ] ],
+    [ "btnOk:2.l", "esp:GND.2", "black", [ "v39.2", "h-189.6", "v-304.48" ] ],
+    [ "btnVoltar:1.l", "esp:D14", "red", [ "h-9.6", "v96.6", "h-289.2", "v-372.28" ] ],
+    [ "btnVoltar:2.l", "esp:GND.2", "black", [ "v58.4", "h-318", "v-323.68" ] ]
+  ],
+  "dependencies": {}
+}
