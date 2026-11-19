@@ -120,6 +120,6 @@ Painel mostrando "Totem sem sinal": a simulação está parada (mais de 60 s sem
 ## Links externos
 
 - [Wokwi](https://wokwi.com/projects/480976924614735873)
-- [Youtube]()
+- [Youtube](https://youtu.be/JorJLzGjLvE)
 
 
